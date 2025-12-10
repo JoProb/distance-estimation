@@ -12,6 +12,28 @@ Download the appropriate executable for your platform under [releases](https://g
 
 The binaries provided under [releases](https://github.com/timmh/distance-estimation/releases) also support operation via the command line instead of a graphical interface. Pass the `--cli --help` flags to get detailed usage instructions.
 
+### Development Setup
+
+Install uv: [https://docs.astral.sh/uv/getting-started/installation/](https://docs.astral.sh/uv/getting-started/installation/)
+
+For CPU only:
+
+```sh
+uv sync --extra cpu
+```
+
+For CUDA enabled GPU:
+
+```sh
+uv sync --extra cu128
+```
+
+Run the cli:
+
+```sh
+uv run main.py --cli --help
+```
+
 ## Data Structure
 
 During configuration, you must choose the directory which contains your input data and which will also contain the results. You can find an exemplary directory [here](assets/demodata.zip). The data directory must adhere to the following structure:
@@ -36,14 +58,17 @@ DistanceEstimationData
     │       └── ...
     └── ...
 ```
+
 The root data directory may be named arbitrarily and must contain two subdirectories: `results` (which will contain distance estimations, visualizations, etc.) and `transects`, which should contain an arbitrary number of subdirectories, each representing a single transect or location. Inside each of these directories, there are three more directories. `calibration_frames` should contain photos of reference objects, each named after the distance in meters the respective reference object represents. `calibration_frames_masks` should contain one equally named binary mask image for each of the photos in the `calibration_frames`, where the reference object is marked in white and everything else in black color. To see how the masks are created please take a look at [this demonstration](assets/mask_howto.mp4). The `detection_frames` finally contain arbitrarily named photos of the animals you want to estimate the distance of. Both `.jp(e)g` and `.png` files are supported.
 
 # Acknowledgements
+
 Thanks to [Phil Garthen](https://github.com/pgarthen), [Hari Surya Charan Mudragada](https://github.com/ayrus144), [Stefanie Schwarz](https://github.com/StefanieSwz), [Sebastian Speth](https://github.com/speths), [Hendrik Edelhoff](https://github.com/hendrik-edelhoff) and [Ludwig Bothmann](https://github.com/ludwigbothmann) for pointing out an implementation issue with the computation of world coordinates.
 
 ## Citation
 
 If this is useful please consider citing:
+
 ```
 @article{haucke2022overcoming,
 title = {Overcoming the distance estimation bottleneck in estimating animal abundance with camera traps},
@@ -57,7 +82,9 @@ issn = {1574-9541},
 url = {https://www.sciencedirect.com/science/article/pii/S1574954121003277}
 }
 ```
+
 Furthermore, as parts of this software are based on [MegaDetector 5.0](https://github.com/microsoft/CameraTraps/releases/tag/v5.0), [Dense Prediction Transformers](https://github.com/isl-org/DPT), [Segment Anything](https://github.com/facebookresearch/segment-anything), and [Depth Anything](https://github.com/LiheYoung/Depth-Anything) please consider also citing:
+
 ```
 @article{megadetector,
   title={Efficient pipeline for camera trap image review},
@@ -79,7 +106,7 @@ Furthermore, as parts of this software are based on [MegaDetector 5.0](https://g
   year={2023}
 }
 @inproceedings{depthanything,
-  title={Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data}, 
+  title={Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data},
   author={Yang, Lihe and Kang, Bingyi and Huang, Zilong and Xu, Xiaogang and Feng, Jiashi and Zhao, Hengshuang},
   booktitle={CVPR},
   year={2024}
