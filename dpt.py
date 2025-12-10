@@ -1,10 +1,9 @@
-
-import sys
-import os
 import json
 import logging
 import numpy as np
 import cv2
+
+import torch # noqa: F401
 import onnxruntime
 from utils import get_onnxruntime_providers, DownloadableWeights
 
@@ -18,7 +17,9 @@ class DPT(DownloadableWeights):
             return
         self._model_loaded = True
 
-        weights_url = "https://github.com/timmh/DPT/releases/download/onnx_v0.1/dpt_hybrid-midas-6c3ec701.onnx"
+        weights_url = (
+            "https://github.com/timmh/DPT/releases/download/onnx_v0.1/dpt_hybrid-midas-6c3ec701.onnx"
+        )
         weights_md5 = "2e9e68ad03f4c519e3624ab181ffe888"
         weights_path = self.get_weights(weights_url, weights_md5)
 
@@ -28,9 +29,11 @@ class DPT(DownloadableWeights):
                 weights_path,
                 providers=providers,
             )
-        except Exception as e:
+        except Exception:
             providers_str = ",".join(providers)
-            logging.warn(f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'")
+            logging.warn(
+                f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'"
+            )
             self.session = onnxruntime.InferenceSession(
                 weights_path,
                 providers=["CPUExecutionProvider"],
@@ -42,7 +45,7 @@ class DPT(DownloadableWeights):
         self.prediction_factor = float(metadata["PredictionFactor"])
         self.mean = np.array(normalization["mean"])
         self.std = np.array(normalization["std"])
-    
+
     def __call__(self, img):
         # ensure model is loaded
         self._load_model()
@@ -51,7 +54,7 @@ class DPT(DownloadableWeights):
         img = img[..., ::-1]
 
         # convert into 0..1 range
-        img = img / 255.
+        img = img / 255.0
 
         # resize
         img_input = cv2.resize(img, (self.net_w, self.net_h), cv2.INTER_AREA)
@@ -71,3 +74,4 @@ class DPT(DownloadableWeights):
         prediction *= self.prediction_factor
 
         return prediction
+

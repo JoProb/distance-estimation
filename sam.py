@@ -1,9 +1,7 @@
-
-import sys
-import os
 import logging
 import numpy as np
 import cv2
+import torch # noqa: F401
 import onnxruntime
 from utils import get_onnxruntime_providers, DownloadableWeights
 
@@ -18,9 +16,10 @@ class SAM(DownloadableWeights):
         self._model_loaded = True
 
         for session_name in ["encoder", "decoder"]:
-
             weights_url = f"https://github.com/timmh/segment-anything/releases/download/v1.0.0/sam_vit_b_01ec64_{session_name}.onnx"
-            weights_md5 = dict(encoder="c9e1e01e436573f7d11dcfe3a81607d7", decoder="3dccf28e1c1c1697d48829da23789ecd")[session_name]
+            weights_md5 = dict(
+                encoder="c9e1e01e436573f7d11dcfe3a81607d7", decoder="3dccf28e1c1c1697d48829da23789ecd"
+            )[session_name]
             weights_path = self.get_weights(weights_url, weights_md5)
 
             providers = get_onnxruntime_providers(enable_coreml=False)
@@ -29,9 +28,11 @@ class SAM(DownloadableWeights):
                     weights_path,
                     providers=providers,
                 )
-            except Exception as e:
+            except Exception:
                 providers_str = ",".join(providers)
-                logging.warn(f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'")
+                logging.warn(
+                    f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'"
+                )
                 session = onnxruntime.InferenceSession(
                     weights_path,
                     providers=["CPUExecutionProvider"],
@@ -48,7 +49,14 @@ class SAM(DownloadableWeights):
 
         img = img[..., ::-1]
         original_size = img.shape[0:2]
-        img = cv2.copyMakeBorder(img, 0, max(0, img.shape[1] - img.shape[0]), 0, max(0, img.shape[0] - img.shape[1]), cv2.BORDER_CONSTANT)
+        img = cv2.copyMakeBorder(
+            img,
+            0,
+            max(0, img.shape[1] - img.shape[0]),
+            0,
+            max(0, img.shape[0] - img.shape[1]),
+            cv2.BORDER_CONSTANT,
+        )
         fx, fy = self.image_size[1] / img.shape[1], self.image_size[0] / img.shape[0]
         img = cv2.resize(img, (self.image_size[1], self.image_size[0]), interpolation=cv2.INTER_LINEAR)
 
@@ -62,22 +70,26 @@ class SAM(DownloadableWeights):
         mask_list = []
         for box in boxes:
             onnx_box_coords = box.reshape(-1, 2, 2)
-            onnx_box_labels = np.array([2,3])
+            onnx_box_labels = np.array([2, 3])
             onnx_coord = onnx_box_coords.astype(np.float32)
             onnx_label = onnx_box_labels[None, :].astype(np.float32)
             onnx_coord[..., 0] *= fy
             onnx_coord[..., 1] *= fx
 
-            masks, _, _ = self.decoder_session.run(None, {
-                "image_embeddings": image_embedding,
-                "point_coords": onnx_coord.astype(np.float32),
-                "point_labels": onnx_label.astype(np.float32),
-                "mask_input": np.zeros((1, 1, 256, 256), dtype=np.float32),
-                "has_mask_input": np.array([0], dtype=np.float32),
-                "orig_im_size": np.array(original_size, dtype=np.float32)
-            })
+            masks, _, _ = self.decoder_session.run(
+                None,
+                {
+                    "image_embeddings": image_embedding,
+                    "point_coords": onnx_coord.astype(np.float32),
+                    "point_labels": onnx_label.astype(np.float32),
+                    "mask_input": np.zeros((1, 1, 256, 256), dtype=np.float32),
+                    "has_mask_input": np.array([0], dtype=np.float32),
+                    "orig_im_size": np.array(original_size, dtype=np.float32),
+                },
+            )
             masks = masks > 0.0
             mask = masks[0, 0]
             mask_list += [mask]
 
         return np.array(mask_list)
+

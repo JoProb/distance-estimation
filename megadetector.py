@@ -1,8 +1,7 @@
-import sys
-import os
 import logging
 import numpy as np
 import cv2
+import torch # noqa: F401
 import onnxruntime
 from utils import get_onnxruntime_providers, DownloadableWeights
 
@@ -32,16 +31,17 @@ class MegaDetector(DownloadableWeights):
                 weights_path,
                 providers=providers,
             )
-        except Exception as e:
+        except Exception:
             providers_str = ",".join(providers)
-            logging.warn(f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'")
+            logging.warn(
+                f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'"
+            )
             self.session = onnxruntime.InferenceSession(
                 weights_path,
                 providers=["CPUExecutionProvider"],
             )
 
         self.common_size = None
-
 
     def __call__(self, img):
         # ensure model is loaded
@@ -51,7 +51,7 @@ class MegaDetector(DownloadableWeights):
         img = img[..., ::-1]
 
         # convert into 0..1 range
-        img = img / 255.
+        img = img / 255.0
 
         # resize
         if self.common_size is not None:
@@ -67,9 +67,8 @@ class MegaDetector(DownloadableWeights):
 
         # compute
         scores, labels, boxes = self.session.run(
-            ["scores", "labels", "boxes"],
-            {self.session.get_inputs()[0].name: img_input.astype(np.float32)
-        })
+            ["scores", "labels", "boxes"], {self.session.get_inputs()[0].name: img_input.astype(np.float32)}
+        )
 
         if self.common_size is not None:
             for box in boxes:
@@ -79,3 +78,4 @@ class MegaDetector(DownloadableWeights):
                 box[3] = box[3] * img.shape[0] / self.common_size[1]
 
         return scores, labels, boxes
+

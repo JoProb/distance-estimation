@@ -74,11 +74,9 @@ def resize(img, target_size):
 
 def get_calibration_frame_dist(transect_dir, calibration_frame_id):
     """Try to get metric depth belonging to a calibration frames using multiple methods"""
-    # first try wether the filename itself represents the distance in meters
-    try:
-        return float(re.match(r"^(\d+(?:\.\d*)?)(?:m|cm|dm|ft|in)?$", calibration_frame_id)[1])
-    except:
-        pass
+    match = re.match(r"^(\d+(?:\.\d*)?)(?:m|cm|dm|ft|in)?$", calibration_frame_id)
+    if match:
+        return float(match.group(1))
 
     # otherwise, search for corresponding text files
     for depth_file_path in [
@@ -91,18 +89,21 @@ def get_calibration_frame_dist(transect_dir, calibration_frame_id):
             transect_dir,
             "calibration_frames_cropped",
             f"{calibration_frame_id}.txt",
-        )
+        ),
     ]:
         if os.path.exists(depth_file_path):
             return depth_from_file(depth_file_path)
-    raise RuntimeError(f"Unable to find depth file for transect {transect_dir} and calibration frame id {calibration_frame_id}")
+    raise RuntimeError(
+        f"Unable to find depth file for transect {transect_dir} and calibration frame id {calibration_frame_id}"
+    )
 
 
 def calibrate(x, y, method, n=2, poly_deg=5):
     with random_seed_manager():
-
         assert n in [1, 2]
-        assert len(x) >= 2 and len(y) >= 2 and len(x) == len(y), f"inconsistent sample length in calibration: len(x)={len(x)}, len(y)={len(y)}"
+        assert len(x) >= 2 and len(y) >= 2 and len(x) == len(y), (
+            f"inconsistent sample length in calibration: len(x)={len(x)}, len(y)={len(y)}"
+        )
 
         x_mask = x.mask if hasattr(x, "mask") else np.zeros_like(x, dtype=bool)
         y_mask = y.mask if hasattr(y, "mask") else np.zeros_like(y, dtype=bool)
@@ -115,10 +116,14 @@ def calibrate(x, y, method, n=2, poly_deg=5):
         x, y = x.reshape(-1), y.reshape(-1)
 
         if method == RegressionMethod.RANSAC:
+
             def is_model_valid(model, X_, y_):
                 return (model.coef_ > 0).all()
+
             estimator = linear_model.LinearRegression(positive=True)
-            ransac = linear_model.RANSACRegressor(estimator=estimator, is_model_valid=is_model_valid, random_state=random_seed)
+            ransac = linear_model.RANSACRegressor(
+                estimator=estimator, is_model_valid=is_model_valid, random_state=random_seed
+            )
             ransac.fit(np.array(x).reshape(-1, 1), np.array(y).reshape(-1, 1))
             c = ransac.predict(np.array([0]).reshape(-1, 1)) if n == 2 else 0
             m = ransac.predict(np.array([1]).reshape(-1, 1)) - c
@@ -168,9 +173,7 @@ def calibrate(x, y, method, n=2, poly_deg=5):
                 alsoinliers = np.abs(np.polyval(maybemodel, x) - y) < t
                 if sum(alsoinliers) > d and sum(alsoinliers) > len(x) * f:
                     bettermodel = np.polyfit(x[alsoinliers], y[alsoinliers], poly_deg)
-                    thiserr = np.sum(
-                        np.abs(np.polyval(bettermodel, x[alsoinliers]) - y[alsoinliers])
-                    )
+                    thiserr = np.sum(np.abs(np.polyval(bettermodel, x[alsoinliers]) - y[alsoinliers]))
                     if thiserr < besterr:
                         bestfit = bettermodel
                         besterr = thiserr
@@ -183,9 +186,7 @@ def calibrate(x, y, method, n=2, poly_deg=5):
 
 def calibrate_v0(x, y, method, n=2, poly_deg=5):
     with random_seed_manager():
-
         assert n in [1, 2]
-
         x_mask = x.mask if hasattr(x, "mask") else np.zeros_like(x, dtype=bool)
         y_mask = y.mask if hasattr(y, "mask") else np.zeros_like(y, dtype=bool)
         mask = x_mask | y_mask
@@ -206,13 +207,12 @@ def calibrate_v0(x, y, method, n=2, poly_deg=5):
                 m, c = m.item(), c.item()
                 return lambda data: m * data + c
             except ValueError:
-                print(f"Failed RANSAC calibration. Retrying with LEASTSQUARES.")
+                print("Failed RANSAC calibration. Retrying with LEASTSQUARES.")
                 A = np.vstack([x, np.ones(len(x))]).T
                 m, c = np.linalg.lstsq(A, y, rcond=None)[0]
 
                 m, c = m.item(), c.item()
                 return lambda data: m * data + c
-
 
         if method == RegressionMethod.LEASTSQUARES:
             try:
@@ -230,7 +230,7 @@ def calibrate_v0(x, y, method, n=2, poly_deg=5):
                     m, c = m.item(), c.item()
                     return lambda data: m * data + c
             except np.linalg.LinAlgError:
-                return do_calibrate(x, y, method="RANSAC", n=n)
+                return do_calibrate(x, y, method="RANSAC", n=n)  # noqa: F821
 
         if method == RegressionMethod.POLY:
             z, _ = np.polynomial.polynomial.polyfit(x, y, poly_deg, full=True)
@@ -266,9 +266,7 @@ def calibrate_v0(x, y, method, n=2, poly_deg=5):
                 alsoinliers = np.abs(np.polyval(maybemodel, x) - y) < t
                 if sum(alsoinliers) > d and sum(alsoinliers) > len(x) * f:
                     bettermodel = np.polyfit(x[alsoinliers], y[alsoinliers], poly_deg)
-                    thiserr = np.sum(
-                        np.abs(np.polyval(bettermodel, x[alsoinliers]) - y[alsoinliers])
-                    )
+                    thiserr = np.sum(np.abs(np.polyval(bettermodel, x[alsoinliers]) - y[alsoinliers]))
                     if thiserr < besterr:
                         bestfit = bettermodel
                         besterr = thiserr
@@ -321,9 +319,7 @@ class EnumActionLowerCase(argparse.Action):
 
         # Ensure an Enum subclass is provided
         if enum_type is None:
-            raise ValueError(
-                "type must be assigned an Enum when using EnumActionLowerCase"
-            )
+            raise ValueError("type must be assigned an Enum when using EnumActionLowerCase")
         if not issubclass(enum_type, enum.Enum):
             raise TypeError("type must be an Enum when using EnumActionLowerCase")
 
@@ -331,9 +327,7 @@ class EnumActionLowerCase(argparse.Action):
         lower_names = tuple(e.name.lower() for e in enum_type)
         unique_names = set(lower_names)
         if len(lower_names) > len(unique_names):
-            raise ValueError(
-                "enum names must be lowercase unique when using EnumActionLowerCase"
-            )
+            raise ValueError("enum names must be lowercase unique when using EnumActionLowerCase")
         kwargs.setdefault("choices", lower_names)
 
         super(EnumActionLowerCase, self).__init__(**kwargs)
@@ -373,11 +367,13 @@ class DownloadableWeights:
                 return filepath
         except Exception as e:
             os.unlink(filepath)
-            raise RuntimeError(f"Failed retrieving weight '{filename}'. Please try again. Full exception: {e}")
+            raise RuntimeError(
+                f"Failed retrieving weight '{filename}'. Please try again. Full exception: {e}"
+            )
             raise e
 
 
-def blur_and_downsample(img, calibration_downsampling_factor=1/8, calibration_blur_sigma=41):
+def blur_and_downsample(img, calibration_downsampling_factor=1 / 8, calibration_blur_sigma=41):
     mask = img.mask if (hasattr(img, "mask") and img.mask.shape != ()) else None
     img = img if mask is None else img.data
 

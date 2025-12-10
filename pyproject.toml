@@ -1,0 +1,46 @@
+[project]
+name = "distance-estimation"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "desktop-notifier>=6.2.0",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.4",
+    "onnxruntime-gpu[cuda,cudnn]==1.23.0",
+    "opencv-python>=4.11.0.86",
+    "platformdirs>=4.5.0",
+    "pyinstaller>=6.16.0",
+    "scikit-learn>=1.7.2",
+    "timm>=1.0.20",
+    "toga>=0.5.2",
+    "torch>=2.9.0",
+    "tqdm>=4.67.1",
+]
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+torch-vision = [
+  { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+torch-audio = [
+  { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+torch-tensorrt = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

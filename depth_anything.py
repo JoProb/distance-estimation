@@ -1,10 +1,8 @@
-
-import sys
-import os
 import json
 import logging
 import numpy as np
 import cv2
+import torch # noqa: F401
 import onnxruntime
 from utils import get_onnxruntime_providers, DownloadableWeights
 
@@ -28,9 +26,11 @@ class DepthAnything(DownloadableWeights):
                 weights_path,
                 providers=providers,
             )
-        except Exception as e:
+        except Exception:
             providers_str = ",".join(providers)
-            logging.warn(f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'")
+            logging.warn(
+                f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'"
+            )
             self.session = onnxruntime.InferenceSession(
                 weights_path,
                 providers=["CPUExecutionProvider"],
@@ -42,7 +42,7 @@ class DepthAnything(DownloadableWeights):
         self.prediction_factor = float(metadata["PredictionFactor"])
         self.mean = np.array(normalization["mean"])
         self.std = np.array(normalization["std"])
-    
+
     def __call__(self, img):
         # ensure model is loaded
         self._load_model()
@@ -51,7 +51,7 @@ class DepthAnything(DownloadableWeights):
         img = img[..., ::-1]
 
         # convert into 0..1 range
-        img = img / 255.
+        img = img / 255.0
 
         # resize
         img_input = cv2.resize(img, (self.net_w, self.net_h), cv2.INTER_AREA)
@@ -71,3 +71,4 @@ class DepthAnything(DownloadableWeights):
         prediction *= self.prediction_factor
 
         return prediction
+

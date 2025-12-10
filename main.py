@@ -12,6 +12,10 @@ from tqdm import tqdm
 import certifi
 import ssl
 import urllib.request
+import toga
+
+from config import Config
+from utils import is_standalone, exception_to_str, EnumActionLowerCase, dirs
 
 
 # Ensure urllib (and downstream HTTP libraries) trust the certifi CA bundle when running from a packaged app.
@@ -19,14 +23,7 @@ _CERTIFI_CAFILE = certifi.where()
 os.environ.setdefault("SSL_CERT_FILE", _CERTIFI_CAFILE)
 os.environ.setdefault("REQUESTS_CA_BUNDLE", _CERTIFI_CAFILE)
 _ssl_context = ssl.create_default_context(cafile=_CERTIFI_CAFILE)
-urllib.request.install_opener(
-    urllib.request.build_opener(urllib.request.HTTPSHandler(context=_ssl_context))
-)
-
-import toga
-
-from config import Config
-from utils import is_standalone, exception_to_str, EnumActionLowerCase, dirs
+urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=_ssl_context)))
 
 
 def var_to_label(var: str):
@@ -73,13 +70,26 @@ def build_config_inputs(config, container, on_config_change):
         value_type = type(value)
 
         if value_type is float:
-            input = toga.NumberInput(value=value, step=Decimal("0.01"), on_change=lambda input, var=var: on_config_change(var, float(input.value)))
+            input = toga.NumberInput(
+                value=value,
+                step=Decimal("0.01"),
+                on_change=lambda input, var=var: on_config_change(var, float(input.value)),
+            )
         elif value_type is int:
-            input = toga.NumberInput(value=value, step=1, on_change=lambda input, var=var: on_config_change(var, int(input.value)))
+            input = toga.NumberInput(
+                value=value, step=1, on_change=lambda input, var=var: on_config_change(var, int(input.value))
+            )
         elif value_type is bool:
-            input = toga.Switch("", value=value, on_change=lambda input, var=var: on_config_change(var, input.is_on))
+            input = toga.Switch(
+                "", value=value, on_change=lambda input, var=var: on_config_change(var, input.is_on)
+            )
         elif issubclass(value_type, Enum):
-            input = toga.Selection(items=[e for e in dir(type(value)) if not e.startswith("_")], on_change=lambda input, var=var, default_type=value_type: on_config_change(var, getattr(default_type, input.value)))
+            input = toga.Selection(
+                items=[e for e in dir(type(value)) if not e.startswith("_")],
+                on_change=lambda input, var=var, default_type=value_type: on_config_change(
+                    var, getattr(default_type, input.value)
+                ),
+            )
             input.value = value.name
         else:
             continue
@@ -112,10 +122,7 @@ def build(app: toga.App):
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.FileHandler(log_path),
-            logging.StreamHandler()
-        ]
+        handlers=[logging.FileHandler(log_path), logging.StreamHandler()],
     )
 
     def persist_config(config, config_path):
@@ -166,7 +173,9 @@ def build(app: toga.App):
         data_dir = await app.main_window.select_folder_dialog(
             "Select Data Directory",
             # on_result=on_result,
-            initial_directory=os.path.realpath(config.data_dir) if os.path.isdir(config.data_dir) and config.data_dir != "" else None,
+            initial_directory=os.path.realpath(config.data_dir)
+            if os.path.isdir(config.data_dir) and config.data_dir != ""
+            else None,
         )
         if data_dir is not None:
             data_dir_label.value = str(data_dir)
@@ -186,7 +195,10 @@ def build(app: toga.App):
         setattr(config, var, value)
         persist_config(config, config_path)
 
-    inputs = build_config_inputs(config, config_box, on_config_change) + [update_data_dir_button, data_dir_label]
+    inputs = build_config_inputs(config, config_box, on_config_change) + [
+        update_data_dir_button,
+        data_dir_label,
+    ]
 
     config_box.style.flex = 1
     config_box_container = toga.ScrollContainer(content=config_box)
@@ -198,8 +210,10 @@ def build(app: toga.App):
 
     terminate_run = False
     last_status_update = None
+
     def run_wrapper(*args, **kwargs):
         from run import run
+
         nonlocal terminate_run, last_status_update
         try:
             yield sleep_duration
@@ -207,7 +221,9 @@ def build(app: toga.App):
                 if terminate_run:
                     break
                 if status_update is not None:
-                    progressbar.value = int(progressbar.max * status_update.current_transect_idx / status_update.total_transects)
+                    progressbar.value = int(
+                        progressbar.max * status_update.current_transect_idx / status_update.total_transects
+                    )
                     last_status_update = status_update
                 yield sleep_duration
             if not terminate_run:
@@ -218,8 +234,14 @@ def build(app: toga.App):
             status_str = ""
             if last_status_update is not None:
                 status_str += f" at transect '{last_status_update.current_transect_id}'"
-                status_str += f" and detection '{last_status_update.current_detection_id}'" if last_status_update.current_detection_id is not None else ""
-            app.main_window.info_dialog("Error", f"An error occured{status_str}: {str(e)}\nDetails:\n{exception_str}")
+                status_str += (
+                    f" and detection '{last_status_update.current_detection_id}'"
+                    if last_status_update.current_detection_id is not None
+                    else ""
+                )
+            app.main_window.info_dialog(
+                "Error", f"An error occured{status_str}: {str(e)}\nDetails:\n{exception_str}"
+            )
         finally:
             run_button.text = "Start"
             enable_inputs(inputs, True)
@@ -258,6 +280,7 @@ def build(app: toga.App):
 
 def cli(args):
     from run import run
+
     args = {k: v for k, v in args.__dict__.items() if not k.startswith("_") and k != "cli"}
     config = Config(**args)
     last_total = None
@@ -275,7 +298,6 @@ def cli(args):
 
 
 def main():
-
     argparser = ArgumentParser()
     argparser.add_argument("--cli", action="store_true", help="Enables CLI operation and disables GUI")
     default_config = Config()
@@ -285,7 +307,9 @@ def main():
         if var.startswith("_"):
             continue
         if issubclass(value_type, Enum):
-            argparser.add_argument(f"--{var}", type=value_type, default=default_value, action=EnumActionLowerCase)
+            argparser.add_argument(
+                f"--{var}", type=value_type, default=default_value, action=EnumActionLowerCase
+            )
         elif value_type is bool:
             if default_value is True:
                 argparser.add_argument(f"--no_{var}", dest=var, action="store_false")
@@ -298,15 +322,14 @@ def main():
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s [%(levelname)s] %(message)s",
-            handlers=[
-                logging.StreamHandler(sys.stdout)
-            ]
+            handlers=[logging.StreamHandler(sys.stdout)],
         )
         cli(args)
     else:
         # We are in GUI mode. If on Windows, hide the console window that opened.
         if sys.platform == "win32":
             import ctypes
+
             # SW_HIDE = 0
             ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
 
@@ -334,7 +357,7 @@ def main():
         ).main_loop()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     multiprocessing.freeze_support()
     if multiprocessing.parent_process() is None:
         main()

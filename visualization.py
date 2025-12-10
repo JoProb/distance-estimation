@@ -3,7 +3,6 @@ import multiprocessing
 from queue import Queue, Empty
 import atexit
 import numpy as np
-import cv2
 
 
 process_queue_max_len = min(8, os.cpu_count())
@@ -18,6 +17,7 @@ def exit_handler():
         except Empty:
             pass
 
+
 atexit.register(exit_handler)
 
 
@@ -27,7 +27,9 @@ def visualize_farthest_calibration_frame(*args, **kwargs):
         oldest_process = process_queue.get()
         oldest_process.join()
 
-    process = multiprocessing.Process(target=visualize_farthest_calibration_frame_impl, args=args, kwargs=kwargs)
+    process = multiprocessing.Process(
+        target=visualize_farthest_calibration_frame_impl, args=args, kwargs=kwargs
+    )
     process.start()
     process_queue.put(process)
 
@@ -43,15 +45,15 @@ def visualize_detection(*args, **kwargs):
     process_queue.put(process)
 
 
-def visualize_farthest_calibration_frame_impl(data_dir, transect_id, farthest_calibration_frame_disp, min_depth, max_depth):
+def visualize_farthest_calibration_frame_impl(
+    data_dir, transect_id, farthest_calibration_frame_disp, min_depth, max_depth
+):
     import matplotlib
     import matplotlib.pyplot as plt
+
     matplotlib.use("pdf")  # required for PyInstaller detection
     plt.imshow(
-        np.clip(
-            farthest_calibration_frame_disp.data, max_depth ** -1, min_depth ** -1
-        )
-        ** -1,
+        np.clip(farthest_calibration_frame_disp.data, max_depth**-1, min_depth**-1) ** -1,
         vmin=min_depth,
         vmax=max_depth,
         cmap="turbo",
@@ -67,21 +69,32 @@ def visualize_farthest_calibration_frame_impl(data_dir, transect_id, farthest_ca
     )
 
 
-def visualize_detection_impl(data_dir, detection_id, detection_frame, calibrated_depth_midas, farthest_calibration_frame_disp, boxes, masks, world_positions, sample_locations, draw_detection_ids, draw_world_position, min_depth, max_depth):
+def visualize_detection_impl(
+    data_dir,
+    detection_id,
+    detection_frame,
+    calibrated_depth_midas,
+    farthest_calibration_frame_disp,
+    boxes,
+    masks,
+    world_positions,
+    sample_locations,
+    draw_detection_ids,
+    draw_world_position,
+    min_depth,
+    max_depth,
+):
     import matplotlib
     import matplotlib.pyplot as plt
     import matplotlib.patches
+
     matplotlib.use("pdf")  # required for PyInstaller detection
     scale = 2
     if farthest_calibration_frame_disp is not None:
-        fig, (ax1, ax2, ax3) = plt.subplots(
-            1, 3, figsize=(scale * 6.202, scale * 1.5)
-        )
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(scale * 6.202, scale * 1.5))
     else:
-        fig, (ax1, ax2) = plt.subplots(
-            1, 2, figsize=(scale * 6.202, scale * 1.5)
-        )
-    
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(scale * 6.202, scale * 1.5))
+
     ax1.imshow(detection_frame[..., ::-1])
     ax1.set_title("Observation")
     for i, (box, mask, world_pos) in enumerate(zip(boxes, masks, world_positions)):
@@ -125,8 +138,8 @@ def visualize_detection_impl(data_dir, detection_id, detection_frame, calibrated
         im = ax3.imshow(
             np.clip(
                 farthest_calibration_frame_disp.data,
-                max_depth ** -1,
-                min_depth ** -1,
+                max_depth**-1,
+                min_depth**-1,
             )
             ** -1,
             vmin=min_depth,
@@ -137,12 +150,12 @@ def visualize_detection_impl(data_dir, detection_id, detection_frame, calibrated
         ax3.get_xaxis().set_visible(False)
         ax3.get_yaxis().set_visible(False)
 
-    fig.subplots_adjust(
-        bottom=0.1, top=0.9, left=0.1, right=0.8, wspace=0.02, hspace=0.02
-    )
+    fig.subplots_adjust(bottom=0.1, top=0.9, left=0.1, right=0.8, wspace=0.02, hspace=0.02)
     a = 0.50
     cbar_ax = fig.add_axes([0.805, (1 - a) / 2, 0.02, a])
-    cbar = fig.colorbar(im, cax=cbar_ax, ax=[ax2, ax3] if farthest_calibration_frame_disp is not None else [ax2])
+    cbar = fig.colorbar(
+        im, cax=cbar_ax, ax=[ax2, ax3] if farthest_calibration_frame_disp is not None else [ax2]
+    )
     cbar.set_label("Depth [m]")
 
     os.makedirs(os.path.join(data_dir, "results", "sampling"), exist_ok=True)
@@ -152,3 +165,4 @@ def visualize_detection_impl(data_dir, detection_id, detection_frame, calibrated
         dpi=300,
         transparent=True,
     )
+

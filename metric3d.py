@@ -1,10 +1,8 @@
-
-import sys
-import os
 import json
 import logging
 import numpy as np
 import cv2
+import torch # noqa: F401
 import onnxruntime
 from utils import get_onnxruntime_providers, DownloadableWeights
 
@@ -28,9 +26,11 @@ class Metric3D(DownloadableWeights):
                 weights_path,
                 providers=providers,
             )
-        except Exception as e:
+        except Exception:
             providers_str = ",".join(providers)
-            logging.warn(f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'")
+            logging.warn(
+                f"Failed to create onnxruntime inference session with providers '{providers_str}', trying 'CPUExecutionProvider'"
+            )
             self.session = onnxruntime.InferenceSession(
                 weights_path,
                 providers=["CPUExecutionProvider"],
@@ -42,7 +42,7 @@ class Metric3D(DownloadableWeights):
         self.prediction_factor = float(metadata["PredictionFactor"])
         self.mean = np.array(normalization["mean"])
         self.std = np.array(normalization["std"])
-    
+
     def __call__(self, img):
         # ensure model is loaded
         self._load_model()
@@ -71,3 +71,4 @@ class Metric3D(DownloadableWeights):
         prediction = np.clip(prediction, 1e-6, np.inf) ** -1
 
         return prediction
+
