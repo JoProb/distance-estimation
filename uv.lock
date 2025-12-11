@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.10.*"
 resolution-markers = [
     "sys_platform == 'darwin' and 'freebsd' in sys_platform",
@@ -202,7 +202,6 @@ dependencies = [
     { name = "desktop-notifier" },
     { name = "matplotlib" },
     { name = "numpy" },
-    { name = "onnxruntime" },
     { name = "opencv-python" },
     { name = "platformdirs" },
     { name = "pyinstaller" },
@@ -214,6 +213,7 @@ dependencies = [
 
 [package.optional-dependencies]
 cpu = [
+    { name = "onnxruntime" },
     { name = "torch", version = "2.9.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-19-distance-estimation-cpu') or (extra == 'extra-19-distance-estimation-cpu' and extra == 'extra-19-distance-estimation-cu128')" },
     { name = "torch", version = "2.9.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-19-distance-estimation-cpu') or (extra == 'extra-19-distance-estimation-cpu' and extra == 'extra-19-distance-estimation-cu128')" },
     { name = "torchvision", version = "0.24.1", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-19-distance-estimation-cpu') or (platform_machine != 'aarch64' and extra == 'extra-19-distance-estimation-cpu' and extra == 'extra-19-distance-estimation-cu128') or (sys_platform == 'darwin' and extra == 'extra-19-distance-estimation-cpu') or (sys_platform != 'linux' and extra == 'extra-19-distance-estimation-cpu' and extra == 'extra-19-distance-estimation-cu128')" },
@@ -232,7 +232,7 @@ requires-dist = [
     { name = "desktop-notifier", specifier = "==6.2.0" },
     { name = "matplotlib", specifier = "==3.10.6" },
     { name = "numpy", specifier = "<2.0.0" },
-    { name = "onnxruntime", specifier = "==1.23.0" },
+    { name = "onnxruntime", marker = "extra == 'cpu'", specifier = "==1.23.0" },
     { name = "onnxruntime-gpu", extras = ["cuda", "cudnn"], marker = "extra == 'cu128'", specifier = "==1.23.0" },
     { name = "opencv-python", specifier = ">=4.0.0" },
     { name = "platformdirs", specifier = "==4.4.0" },
@@ -382,7 +382,7 @@ name = "humanfriendly"
 version = "10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyreadline3", marker = "sys_platform == 'win32' or (extra == 'extra-19-distance-estimation-cpu' and extra == 'extra-19-distance-estimation-cu128')" },
+    { name = "pyreadline3", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cc/3f/2c29224acb2e2df4d2046e4c73ee2662023c58ff5b113c4c1adac0886c43/humanfriendly-10.0.tar.gz", hash = "sha256:6b0b831ce8f15f7300721aa49829fc4e83921a9a301cc7f606be6686a2288ddc", size = 360702, upload-time = "2021-09-17T21:40:43.31Z" }
 wheels = [
