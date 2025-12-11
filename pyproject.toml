@@ -3,13 +3,13 @@ name = "distance-estimation"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "==3.10.*"
 dependencies = [
   "certifi>=2025.11.12",
   "desktop-notifier==6.2.0",
   "matplotlib==3.10.6",
   "numpy<2.0.0",
-  "onnxruntime-gpu[cuda,cudnn]==1.23.0",
+  "onnxruntime==1.23.0",
   "opencv-python>=4.0.0",
   "platformdirs==4.4.0",
   "pyinstaller==6.16.0",
@@ -20,8 +20,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cpu = ["torch>=2.2.0"]
-cu128 = ["torch>=2.2.0"]
+cpu = ["torch>=2.2.0", "torchvision"]
+cu128 = ["torch>=2.2.0", "torchvision", "onnxruntime-gpu[cuda,cudnn]==1.23.0"]
 
 [tool.uv]
 conflicts = [[{ extra = "cpu" }, { extra = "cu128" }]]
@@ -31,6 +31,11 @@ torch = [
   { index = "pytorch-cpu", extra = "cpu" },
   { index = "pytorch-cu128", extra = "cu128" },
 ]
+torchvision = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu128", extra = "cu128" },
+]
+
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
